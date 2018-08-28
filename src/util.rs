@@ -1,4 +1,5 @@
 use std::{self, io};
+use Error; // todo use `!`.
 
 /// A helper to facilitate paring line by line while reusing a string buffer.
 pub struct LineParser<R> {
@@ -71,7 +72,7 @@ fn test_parse_u64() {
 
 pub fn consume_space(input: &str) -> &str {
     for (idx, ch) in input.char_indices() {
-        if ! ch.is_whitespace() {
+        if ! ch.is_whitespace() && ch != '\n' && ch != '\r' {
             return &input[idx..];
         }
     }
@@ -113,3 +114,8 @@ fn test_parse_token() {
     assert_eq!(parse_token(" token "), Some((" ", "token")));
 }
 
+
+// todo should be ! not Error.
+pub fn parse_dummy(_input: &str) -> Result<(), Error> {
+    Ok(())
+}

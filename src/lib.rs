@@ -2,10 +2,11 @@
 //!
 
 mod util;
-mod stat;
+pub mod stat;
 
 use std::fmt;
 
+/// A very simple error handler.
 pub struct Error(String);
 
 impl From<String> for Error {

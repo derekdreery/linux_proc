@@ -1,3 +1,4 @@
+//! Bindings to `/proc/stat`.
 use {util, Error};
 use std::{
     io,
@@ -10,7 +11,8 @@ macro_rules! parse_single {
             let (input, name) = util::parse_token(input)
                 .ok_or(Error::from("cannot read name"))?;
             if name != $name {
-                return Err(Error::from("incorrect name"));
+                return Err(Error::from(format!("incorrect name, expected: {}, actual: {}",
+                                               $name, name)));
             }
             let (input, value) = util::parse_u64(input)
                 .ok_or(Error::from("cannot read value"))?;
@@ -44,24 +46,25 @@ pub struct Stat {
 }
 
 impl Stat {
-    pub fn from_system() {
-        Stat::from_reader(File::open("/proc/stat")?)
+    const PATH: &'static str = "/proc/stat";
+
+    /// Parse the contents of `/proc/stat`.
+    pub fn from_system() -> io::Result<Self> {
+        Stat::from_reader(File::open(Self::PATH)?)
     }
-    pub fn from_reader(reader: impl io::Read) -> io::Result<Self> {
-        let mut reader = util::LineParser::new(reader)?);
-        let cpu_totals = reader.parse_line(
-            |s| StatCpu::from_str(s).ok_or_else(|| Error::from("reading totals line"))
-        )?;
+
+    fn from_reader(reader: impl io::Read) -> io::Result<Self> {
+        let mut reader = util::LineParser::new(reader);
+        let cpu_totals = reader.parse_line(StatCpu::from_str)?;
         let mut cpus = Vec::new();
         loop {
-            if let Ok(cpu_info) = reader.parse_line(
-                |s| StatCpu::from_str(s).ok_or_else(|| Error::from(String::new()))
-            ) {
+            if let Ok(cpu_info) = reader.parse_line(StatCpu::from_str) {
                 cpus.push(cpu_info);
             } else {
                 break;
             }
         }
+        reader.parse_line(util::parse_dummy)?;
         let context_switches = reader.parse_line(parse_single!("ctxt"))?;
         let boot_time = reader.parse_line(parse_single!("btime"))?;
         let processes = reader.parse_line(parse_single!("processes"))?;
@@ -93,33 +96,49 @@ pub struct StatCpu {
     pub iowait: u64,
     pub irq: u64,
     pub softirq: u64,
-    pub steal: u64,
-    pub guest: u64,
+    pub steal: Option<u64>,
+    pub guest: Option<u64>,
+    pub guest_nice: Option<u64>,
+}
+
+macro_rules! err_msg {
+    ($inner:expr, $msg:expr) => {
+        $inner.ok_or_else(|| Error::from($msg))
+    }
 }
 
 impl StatCpu {
-    fn from_str(input: &str) -> Option<StatCpu> {
-        let (input, cpunum) = util::parse_token(input)?;
+    fn from_str(input: &str) -> Result<StatCpu, Error> {
+        let (input, cpunum) = err_msg!(util::parse_token(input), "first token")?;
         if ! cpunum.starts_with("cpu") {
-            return None;
+            return Err("starts with cpu<x>".into());
         }
 
-        let (input, user) = util::parse_u64(input)?;
-        let (input, nice) = util::parse_u64(input)?;
-        let (input, system) = util::parse_u64(input)?;
-        let (input, idle) = util::parse_u64(input)?;
-        let (input, iowait) = util::parse_u64(input)?;
-        let (input, irq) = util::parse_u64(input)?;
-        let (input, softirq) = util::parse_u64(input)?;
-        let (input, steal) = util::parse_u64(input)?;
-        let (input, guest) = util::parse_u64(input)?;
-        let input = util::consume_space(input);
-        if ! input.is_empty() {
-            return None;
-        }
-        Some(StatCpu { user, nice, system, idle, iowait, irq, softirq, steal, guest })
+        let (input, user) = err_msg!(util::parse_u64(input), "user")?;
+        let (input, nice) = err_msg!(util::parse_u64(input), "nice")?;
+        let (input, system) = err_msg!(util::parse_u64(input), "system")?;
+        let (input, idle) = err_msg!(util::parse_u64(input), "idle")?;
+        let (input, iowait) = err_msg!(util::parse_u64(input), "iowait")?;
+        let (input, irq) = err_msg!(util::parse_u64(input), "irq")?;
+        let (input, softirq) = err_msg!(util::parse_u64(input), "softirq")?;
+        // Following are optional fields
+        let (input, steal) = match util::parse_u64(input) {
+            Some((i, steal)) => (i, Some(steal)),
+            None => (input, None),
+        };
+        let (input, guest) = match util::parse_u64(input) {
+            Some((i, guest)) => (i, Some(guest)),
+            None => (input, None),
+        };
+        let (_, guest_nice) = match util::parse_u64(input) {
+            Some((i, guest_nice)) => (i, Some(guest_nice)),
+            None => (input, None),
+        };
+        // We don't check remaining content as future linux may add extra columns.
+        Ok(StatCpu { user, nice, system, idle, iowait, irq, softirq, steal, guest, guest_nice })
     }
 
+    /// Convenience function to add up all cpu values.
     pub fn total(&self) -> u64 {
         self.user
             .checked_add(self.nice).unwrap()
@@ -128,8 +147,9 @@ impl StatCpu {
             .checked_add(self.iowait).unwrap()
             .checked_add(self.irq).unwrap()
             .checked_add(self.softirq).unwrap()
-            .checked_add(self.steal).unwrap()
-            .checked_add(self.guest).unwrap()
+            .checked_add(self.steal.unwrap_or(0)).unwrap()
+            .checked_add(self.guest.unwrap_or(0)).unwrap()
+            .checked_add(self.guest_nice.unwrap_or(0)).unwrap()
     }
 
 }
@@ -150,5 +170,5 @@ procs_running 1
 procs_blocked 0
 softirq 4257581 64 299604 69 2986 36581 0 3497229 283111 0 137937
 ";
-    let _stat = Stat::from_reader(io::Cursor::new(raw).lines()).unwrap();
+    let _stat = Stat::from_reader(io::Cursor::new(raw)).unwrap();
 }

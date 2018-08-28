@@ -3,4 +3,5 @@ name = "linux_proc"
 version = "0.1.0"
 authors = ["Richard Dodd <richard.o.dodd@gmail.com>"]
 
-[dependencies]
+[dev-dependencies]
+quicli = "0.3"
