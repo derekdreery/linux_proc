@@ -1,5 +1,5 @@
-use std::{self, io};
-use crate::Error; // todo use `!`.
+use crate::Error;
+use std::{self, io}; // todo use `!`.
 
 /// A helper to facilitate paring line by line while reusing a string buffer.
 pub struct LineParser<R> {

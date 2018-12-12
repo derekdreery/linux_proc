@@ -34,7 +34,7 @@ enum Command {
     #[structopt(name = "diskstats")]
     DiskStats {
         /// The disk devices for which information should be printed
-        device: String
+        device: String,
     },
 }
 
@@ -59,8 +59,10 @@ main!(|args: Cli, log_level: verbosity| match args.command {
             std::thread::sleep(std::time::Duration::from_nanos(INTERVAL_NANOS));
             let curr_stat = linux_proc::diskstats::DiskStats::from_system()?;
             let reading = time_reading(
-                prev_stat.get(&device).expect(&format!("cannot find device \"{}\"", &device)),
-                curr_stat.get(&device).unwrap()
+                prev_stat
+                    .get(&device)
+                    .expect(&format!("cannot find device \"{}\"", &device)),
+                curr_stat.get(&device).unwrap(),
             );
             let read_ratio = (reading as f64) / (INTERVAL_NANOS as f64);
 
@@ -75,7 +77,9 @@ main!(|args: Cli, log_level: verbosity| match args.command {
 
 fn time_reading(prev: &DiskStat, current: &DiskStat) -> u64 {
     let read_time = current.time_reading - prev.time_reading;
-    let read_time = read_time.as_secs().checked_mul(NANOS_IN_SEC)
+    let read_time = read_time
+        .as_secs()
+        .checked_mul(NANOS_IN_SEC)
         .expect("overflow")
         .checked_add(read_time.subsec_nanos().into())
         .expect("overflow");

@@ -1,8 +1,8 @@
 //! Bindings to `/proc/diskstats`.
+use std::collections::HashMap;
 use std::fs::File;
 use std::io;
 use std::time::Duration;
-use std::collections::HashMap;
 
 use crate::{util, Error};
 
@@ -12,7 +12,7 @@ pub struct DiskStats {
 
 impl DiskStats {
     const PATH: &'static str = "/proc/diskstats";
-    /// Parse the contents of `/proc/stat`.
+    /// Parse the contents of `/proc/diskstats`.
     pub fn from_system() -> io::Result<Self> {
         DiskStats::from_reader(File::open(Self::PATH)?)
     }
@@ -26,7 +26,7 @@ impl DiskStats {
                     if inner.insert(disk_stat.name.clone(), disk_stat).is_some() {
                         panic!("Duplicate device name in /proc/diskstats");
                     }
-                },
+                }
                 Err(ref e) if e.kind() == io::ErrorKind::UnexpectedEof => break,
                 Err(e) => return Err(e),
             }
