@@ -1,8 +1,9 @@
 //! Parsers for the contents of the `/proc` directory.
 //!
 
-mod util;
+pub mod diskstats;
 pub mod stat;
+mod util;
 
 use std::fmt;
 

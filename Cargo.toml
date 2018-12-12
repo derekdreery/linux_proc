@@ -9,6 +9,7 @@ repository = "https://github.com/derekdreery/linux_proc"
 keywords = ["linux", "proc", "system", "info", "top"]
 categories = ["command-line-interface", "filesystem", "os::unix-apis", "parser-implementations"]
 license = "MIT/Apache-2.0"
+edition = "2018"
 
 [badges]
 travis-ci = { repository = "derekdreery/linux_proc" }

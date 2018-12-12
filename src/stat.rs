@@ -1,28 +1,25 @@
 //! Bindings to `/proc/stat`.
+use std::{fs::File, io};
 use {util, Error};
-use std::{
-    io,
-    fs::File
-};
 
 macro_rules! parse_single {
     ($name:expr) => {
         |input| {
-            let (input, name) = util::parse_token(input)
-                .ok_or(Error::from("cannot read name"))?;
+            let (input, name) = util::parse_token(input).ok_or(Error::from("cannot read name"))?;
             if name != $name {
-                return Err(Error::from(format!("incorrect name, expected: {}, actual: {}",
-                                               $name, name)));
+                return Err(Error::from(format!(
+                    "incorrect name, expected: {}, actual: {}",
+                    $name, name
+                )));
             }
-            let (input, value) = util::parse_u64(input)
-                .ok_or(Error::from("cannot read value"))?;
+            let (input, value) = util::parse_u64(input).ok_or(Error::from("cannot read value"))?;
             let input = util::consume_space(input);
-            if ! input.is_empty() {
+            if !input.is_empty() {
                 return Err(Error::from("trailing content"));
             }
             Ok(value)
         }
-    }
+    };
 }
 
 /// The stats from `/proc/stat`.
@@ -78,7 +75,7 @@ impl Stat {
             boot_time,
             processes,
             procs_running,
-            procs_blocked
+            procs_blocked,
         })
     }
 }
@@ -104,13 +101,13 @@ pub struct StatCpu {
 macro_rules! err_msg {
     ($inner:expr, $msg:expr) => {
         $inner.ok_or_else(|| Error::from($msg))
-    }
+    };
 }
 
 impl StatCpu {
     fn from_str(input: &str) -> Result<StatCpu, Error> {
         let (input, cpunum) = err_msg!(util::parse_token(input), "first token")?;
-        if ! cpunum.starts_with("cpu") {
+        if !cpunum.starts_with("cpu") {
             return Err("starts with cpu<x>".into());
         }
 
@@ -135,23 +132,42 @@ impl StatCpu {
             None => (input, None),
         };
         // We don't check remaining content as future linux may add extra columns.
-        Ok(StatCpu { user, nice, system, idle, iowait, irq, softirq, steal, guest, guest_nice })
+        Ok(StatCpu {
+            user,
+            nice,
+            system,
+            idle,
+            iowait,
+            irq,
+            softirq,
+            steal,
+            guest,
+            guest_nice,
+        })
     }
 
     /// Convenience function to add up all cpu values.
     pub fn total(&self) -> u64 {
         self.user
-            .checked_add(self.nice).unwrap()
-            .checked_add(self.system).unwrap()
-            .checked_add(self.idle).unwrap()
-            .checked_add(self.iowait).unwrap()
-            .checked_add(self.irq).unwrap()
-            .checked_add(self.softirq).unwrap()
-            .checked_add(self.steal.unwrap_or(0)).unwrap()
-            .checked_add(self.guest.unwrap_or(0)).unwrap()
-            .checked_add(self.guest_nice.unwrap_or(0)).unwrap()
+            .checked_add(self.nice)
+            .unwrap()
+            .checked_add(self.system)
+            .unwrap()
+            .checked_add(self.idle)
+            .unwrap()
+            .checked_add(self.iowait)
+            .unwrap()
+            .checked_add(self.irq)
+            .unwrap()
+            .checked_add(self.softirq)
+            .unwrap()
+            .checked_add(self.steal.unwrap_or(0))
+            .unwrap()
+            .checked_add(self.guest.unwrap_or(0))
+            .unwrap()
+            .checked_add(self.guest_nice.unwrap_or(0))
+            .unwrap()
     }
-
 }
 
 #[test]

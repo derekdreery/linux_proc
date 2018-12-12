@@ -7,8 +7,10 @@ pub struct LineParser<R> {
     buffer: String,
 }
 
-impl<R> LineParser<R> where R: io::Read {
-
+impl<R> LineParser<R>
+where
+    R: io::Read,
+{
     pub fn new(reader: R) -> LineParser<R> {
         LineParser {
             reader: io::BufReader::new(reader),
@@ -18,8 +20,9 @@ impl<R> LineParser<R> where R: io::Read {
 
     /// If the parse fails, the line is available for trying different parsers.
     pub fn parse_line<F, E, Val>(&mut self, parser: F) -> io::Result<Val>
-        where F: Fn(&str) -> Result<Val, E>,
-              E: std::error::Error + Send + Sync + 'static
+    where
+        F: Fn(&str) -> Result<Val, E>,
+        E: std::error::Error + Send + Sync + 'static,
     {
         // Only fetch next line if we consumed the previous
         if self.buffer.is_empty() {
@@ -36,24 +39,23 @@ impl<R> LineParser<R> where R: io::Read {
     }
 }
 
-
 pub fn parse_u64(input: &str) -> Option<(&str, u64)> {
     let input = consume_space(input);
     let mut chars = input.chars();
     let (mut next_idx, mut acc) = match chars.next() {
         Some(ch) => match ch.to_digit(10) {
             Some(val) => (ch.len_utf8(), val as u64),
-            None => return None
+            None => return None,
         },
-        None => return None
+        None => return None,
     };
     for ch in chars {
         match ch.to_digit(10) {
             Some(val) => {
                 acc = acc * 10 + val as u64;
                 next_idx += ch.len_utf8();
-            },
-            None => break
+            }
+            None => break,
         }
     }
     Some((&input[next_idx..], acc))
@@ -72,7 +74,7 @@ fn test_parse_u64() {
 
 pub fn consume_space(input: &str) -> &str {
     for (idx, ch) in input.char_indices() {
-        if ! ch.is_whitespace() && ch != '\n' && ch != '\r' {
+        if !ch.is_whitespace() && ch != '\n' && ch != '\r' {
             return &input[idx..];
         }
     }
@@ -113,7 +115,6 @@ fn test_parse_token() {
     assert_eq!(parse_token(" token"), Some(("", "token")));
     assert_eq!(parse_token(" token "), Some((" ", "token")));
 }
-
 
 // todo should be ! not Error.
 pub fn parse_dummy(_input: &str) -> Result<(), Error> {
