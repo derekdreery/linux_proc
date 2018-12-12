@@ -1,6 +1,6 @@
 //! Bindings to `/proc/stat`.
 use std::{fs::File, io};
-use {util, Error};
+use crate::{util, Error};
 
 macro_rules! parse_single {
     ($name:expr) => {
