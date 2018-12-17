@@ -1,5 +1,4 @@
 //! Bindings to `/proc/uptime`.
-use std::collections::HashMap;
 use std::fs::File;
 use std::io;
 use std::time::Duration;
