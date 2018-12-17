@@ -3,6 +3,7 @@
 
 pub mod diskstats;
 pub mod stat;
+pub mod uptime;
 mod util;
 
 use std::fmt;
@@ -34,8 +35,4 @@ impl fmt::Display for Error {
     }
 }
 
-impl std::error::Error for Error {
-    fn cause(&self) -> Option<&dyn std::error::Error> {
-        None
-    }
-}
+impl std::error::Error for Error {}

@@ -2,7 +2,7 @@
 name = "linux_proc"
 description = "A library to help reading the contents of `/proc` on linux"
 readme = "README.md"
-version = "0.1.0"
+version = "0.1.1"
 authors = ["Richard Dodd <richard.o.dodd@gmail.com>"]
 include = ["Cargo.toml", "README.md", "src/**/*.rs"]
 repository = "https://github.com/derekdreery/linux_proc"

@@ -36,6 +36,9 @@ enum Command {
         /// The disk devices for which information should be printed
         device: String,
     },
+    /// Present the contents of `/proc/uptime`.
+    #[structopt(name = "uptime")]
+    Uptime,
 }
 
 main!(|args: Cli, log_level: verbosity| match args.command {
@@ -72,6 +75,11 @@ main!(|args: Cli, log_level: verbosity| match args.command {
             std::io::Write::flush(&mut std::io::stdout())?;
             prev_stat = curr_stat;
         }
+    }
+    Command::Uptime => {
+        let uptime = linux_proc::uptime::Uptime::from_system()?;
+        println!("system has been up for {:?}", uptime.up);
+        println!("cores have been idle for {:?}", uptime.idle);
     }
 });
 
