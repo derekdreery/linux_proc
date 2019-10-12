@@ -54,6 +54,7 @@ impl IntoIterator for DiskStats {
     }
 }
 
+#[derive(Debug, Clone)]
 pub struct DiskStat {
     pub major: u64,
     pub minor: u64,
